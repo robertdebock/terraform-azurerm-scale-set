@@ -92,7 +92,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "default" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
+    sku       = "18.04-LTS"
     version   = "latest"
   }
 
@@ -110,9 +110,81 @@ resource "azurerm_linux_virtual_machine_scale_set" "default" {
       primary                                = true
       subnet_id                              = azurerm_subnet.default.id
       load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.default.id]
-      public_ip_address {
-        name = "public-ip"
+      # For debugging, you many give the instances a public IP.
+      # public_ip_address {
+      #   name = "public-ip"
+      # }
+    }
+  }
+}
+
+resource "azurerm_monitor_autoscale_setting" "default" {
+  name                = "myAutoscaleSetting"
+  resource_group_name = azurerm_resource_group.default.name
+  location            = azurerm_resource_group.default.location
+  target_resource_id  = azurerm_linux_virtual_machine_scale_set.default.id
+
+  profile {
+    name = "defaultProfile"
+
+    capacity {
+      default = var.instances
+      minimum = 1
+      maximum = var.maximum_instances
+    }
+
+    rule {
+      metric_trigger {
+        metric_name        = "Percentage CPU"
+        metric_resource_id = azurerm_linux_virtual_machine_scale_set.default.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
+        operator           = "GreaterThan"
+        threshold          = 75
+        metric_namespace   = "microsoft.compute/virtualmachinescalesets"
+        dimensions {
+          name     = "AppName"
+          operator = "Equals"
+          values   = ["App1"]
+        }
       }
+
+      scale_action {
+        direction = "Increase"
+        type      = "ChangeCount"
+        value     = "1"
+        cooldown  = "PT1M"
+      }
+    }
+
+    rule {
+      metric_trigger {
+        metric_name        = "Percentage CPU"
+        metric_resource_id = azurerm_linux_virtual_machine_scale_set.default.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
+        operator           = "LessThan"
+        threshold          = 25
+      }
+
+      scale_action {
+        direction = "Decrease"
+        type      = "ChangeCount"
+        value     = "1"
+        cooldown  = "PT1M"
+      }
+    }
+  }
+
+  notification {
+    email {
+      send_to_subscription_administrator    = true
+      send_to_subscription_co_administrator = true
+      custom_emails                         = ["robert@meinit.nl"]
     }
   }
 }
