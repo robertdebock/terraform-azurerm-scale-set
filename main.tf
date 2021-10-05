@@ -129,7 +129,7 @@ resource "azurerm_monitor_autoscale_setting" "default" {
 
     capacity {
       default = var.instances
-      minimum = 1
+      minimum = var.minimum_instances
       maximum = var.maximum_instances
     }
 
@@ -184,7 +184,7 @@ resource "azurerm_monitor_autoscale_setting" "default" {
     email {
       send_to_subscription_administrator    = true
       send_to_subscription_co_administrator = true
-      custom_emails                         = ["robert@meinit.nl"]
+      custom_emails                         = var.custom_emails
     }
   }
 }
