@@ -42,7 +42,6 @@ resource "azurerm_lb_backend_address_pool" "default" {
 
 resource "azurerm_lb_probe" "default" {
   name                = var.name
-  resource_group_name = azurerm_resource_group.default.name
   loadbalancer_id     = azurerm_lb.default.id
   protocol            = "Http"
   request_path        = "/"
@@ -50,9 +49,8 @@ resource "azurerm_lb_probe" "default" {
 }
 
 resource "azurerm_lb_rule" "example" {
-  resource_group_name            = azurerm_resource_group.default.name
   loadbalancer_id                = azurerm_lb.default.id
-  backend_address_pool_id        = azurerm_lb_backend_address_pool.default.id
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.default.id]
   name                           = "http"
   protocol                       = "Tcp"
   frontend_port                  = 80
